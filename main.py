@@ -8,6 +8,9 @@ from multiprocessing import Process, Queue, Pool, Manager
 
 import queue
 
+import sys
+sys.setrecursionlimit(1000000)
+
 WEBSITE = "https://books.toscrape.com"
 
 def f(to_visit, visited, results):
@@ -15,7 +18,7 @@ def f(to_visit, visited, results):
         try:
             url = to_visit.get(timeout=5)
         except queue.Empty:
-            break
+            return
 
         r = requests.get(url)
         soup = BeautifulSoup(r.text, "html.parser")
@@ -33,7 +36,7 @@ def f(to_visit, visited, results):
 
             visited[link] = True
             to_visit.put(link)
-            results.put(link)
+            results.put((link, soup))
 
 class Scraper:
     def __init__(self, root_url: str, processes: int =1):
@@ -65,10 +68,10 @@ class Scraper:
                 res = self.results.get(timeout=5)
                 yield res
             except queue.Empty:
-                break
+                return
 
     def stop(self):
-        for proc in self.processes:
+        for i, proc in enumerate(self.processes):
             proc.join()
 
 
@@ -76,8 +79,8 @@ def main():
     s = Scraper(WEBSITE, processes=16)
     s.start()
 
-    for i in s.get_results():
-        print(i)
+    for link, soup in s.get_results():
+            print(f"{link} => {soup.title.string}")
 
     s.stop()
 
