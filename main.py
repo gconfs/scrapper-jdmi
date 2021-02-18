@@ -30,9 +30,10 @@ class Scraper:
         self.processes = []
 
         for _ in range(processes):
-            proc = Process(target=f, args=(self.to_visit, self.visited, self.results))
+            proc = Process(target=Scraper.worker, args=(self.to_visit, self.visited, self.results))
             self.processes.append(proc)
 
+    @staticmethod
     def worker(to_visit, visited, results):
         while True:
             try:
